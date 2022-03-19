@@ -10,15 +10,30 @@
 U8G2_SSD1306_128X64_NONAME_F_SW_I2C g_OLED(U8G2_R0, 15, 4,  16);
 int g_lineHeight = 0;
 
-
-// initialize wifi scan and prompt for connection
 #include <WiFi.h>
 
+// Replace with your network credentials (STATION)
+const char* ssid = "HoloNet";
+const char* password = "Coruscant";
+
+unsigned long previousMillis = 0;
+unsigned long interval = 30000;
 
 
-// Our home network, if on a different network replace with your keys
- const  char*   ssid      =   "HoloNet";
- const  char*   password    =   "Coruscant";
+void initWiFi()
+{
+  WiFi.mode(WIFI_STA);
+  WiFi.begin(ssid, password);
+  delay(1000);
+  Serial.print("Connecting to WiFi ..");
+  while (WiFi.status() != WL_CONNECTED) {
+    Serial.println('.');
+    delay(1000);
+    WiFi.begin(ssid,    password);
+  }
+  Serial.println(WiFi.localIP());  
+}
+
 
 
 void setup() 
@@ -37,32 +52,29 @@ g_OLED.setCursor(0, g_lineHeight *  2);
 g_OLED.printf("Download # ");
 g_OLED.sendBuffer();
 
-
-
-// Open serial port for program feedback
 Serial.begin(9600);
-
-WiFi.begin(ssid,    password);
-WiFi.mode(WIFI_STA);
-// Connection attempt
-while (WiFi.status()    !=  WL_CONNECTED)
-{
-    delay(500);
-    Serial.println("connection attempt. . .");
-}
-Serial.println(WiFi.localIP());
-
-
-
+initWiFi();
+Serial.print("RSSI: ");
+Serial.println(WiFi.RSSI());
 
 }
 
 void loop() 
-
-
 {
+
 digitalWrite(LED_BUILTIN, 1);
 delay(100);
 digitalWrite(LED_BUILTIN, 0);
-delay(400);  
+delay(400); 
+
+  unsigned long currentMillis = millis();
+  // if WiFi is down, try reconnecting every CHECK_WIFI_TIME seconds
+  if ((WiFi.status() != WL_CONNECTED) && (currentMillis - previousMillis >=interval)) 
+  {
+    Serial.print(millis());
+    Serial.println("Reconnecting to WiFi...");
+    WiFi.disconnect();
+    WiFi.reconnect();
+    previousMillis = currentMillis;
+  }
 }
